@@ -190,7 +190,7 @@ class BarLmrStretch(BarRepeatClass):
 
 
 def Test():
-  SetImagePathPrefix(".")
+  SetImagePathPrefix("./")
 
   pgname = "testbar.html"
 

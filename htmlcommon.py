@@ -21,7 +21,7 @@ def render(obj):
 
 
 def obj2file(obj):
-  p = obj.findParent(TagsWithOwnFile)
+  p = obj.findParent(TagsWithOwnFile)  # Find a parent object by tag for a tag that has its own .html file
   if p: p = p[0]
   else: p = obj
 

@@ -29,7 +29,7 @@ from PyHtmlGen.module import *
 yadogJsModule = Module("yadogJs",jsm,[("head",["<script language='JavaScript' src='yadogjs.js'>1;</script>\n"]) ])
 
 
-myDir = "/me/code/yadog/layouts/basicJson/"
+myDir = os.path.dirname(__file__) + os.sep
 
 def generate(obj,cfg,tagdict=None):
   ret = (None,None)
@@ -38,7 +38,8 @@ def generate(obj,cfg,tagdict=None):
     print "Home page generation completed."
   except Exception, e:
     print e
-    pdb.set_trace()
+    raise
+#    pdb.set_trace()
   return ret
 
 
@@ -47,7 +48,7 @@ def main(obj,cfg,tagdict):
 
   helpContent = Chunk("",myId='center')
 
-  SetImagePathPrefix(".")
+  # SetImagePathPrefix("./")
   mediaDir = cfg["html"]["skin"]
 
   hlst = []

@@ -56,7 +56,6 @@ def actionDynGetScript(element,uri,js):
 #<example>
 def Test():
    import gen
-   from attribute import *
 
    cdlt = Chunk("Click for Dynamic load test")
    replaceme = Chunk("this will be replaced")

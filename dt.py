@@ -28,8 +28,9 @@ def extractXml(prjPfx, filename):
   try:
     xml = microdom.parseString(xmltxt)
   except microdom.ExpatError,e:
-    print "XML ERROR!", str(e)
-    print str(xml)
+    print "File %s: XML ERROR '%s'" % (filename,str(e))
+    print "File is:"
+    # print xmltxt
     pdb.set_trace()
     
   return xml

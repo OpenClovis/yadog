@@ -63,7 +63,11 @@ class ImageHtml(ChunkTag):
     self.name   = imname
     self.pixmap = pixmap
     if localFileName:
-      self.im     = Image.open(localFileName)
+      try:
+        self.im     = Image.open(localFileName)
+      except IOError, e:
+        print "WARNING: image %s format not understood or image not found" % imname
+        self.im = None
     else:
       try:
         self.im     = Image.open(imname)

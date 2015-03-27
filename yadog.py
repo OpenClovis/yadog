@@ -188,19 +188,15 @@ def regularize(node,zzdepth=0):
          t = microdom.MicroDom({"tag_":TagDecl},[node.name],None)
          node.addChild(t)
       
-
-
   return node
 
-def main(prjPfx, top,butnot, cfg):
-  allfiles = fileWalkFlatten(os.walk(prjPfx + top),butnot)
-
+def go(prjPfx, allfiles, cfg):
   allxml = []
   for f in allfiles:
     ext = os.path.splitext(f)[1]
     if ext == ".py":
       allxml.append(dp.extractXml(prjPfx,f))
-    elif ext in [".h",".hpp",".c",".pde"]:  # .pde is Arduino
+    elif ext in [".h",".hpp",".hxx",".c",".pde"]:  # .pde is Arduino
       allxml.append(dc.extractXml(prjPfx,f))
     elif ext in [".txt"]:
       allxml.append(dt.extractXml(prjPfx,f))
@@ -228,6 +224,17 @@ def main(prjPfx, top,butnot, cfg):
   f.close()
 
   d2html.gen("html",xml,cfg)
+
+
+def genPaths(directories,butnot, cfg,prjPfx):
+  allfiles = []
+  for d in directories:
+    allfiles += fileWalkFlatten(os.walk(d),butnot)
+  go(prjPfx, allfiles,cfg)
+
+def main(prjPfx, top,butnot, cfg):
+  allfiles = fileWalkFlatten(os.walk(prjPfx + top),butnot)
+  go(prjPfx, allfiles,cfg)
 
 def Test():
   #pdb.set_trace()

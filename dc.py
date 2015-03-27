@@ -5,9 +5,8 @@ from types import *
 import pdb
 import ast
 import re
-
 import sys
-sys.path.append("/me/code")
+import cgi
 
 from PyHtmlGen.document import *
 
@@ -15,29 +14,45 @@ from common import *
 from constants import *
 import microdom
 
+
+def dictToArgStr(d,skip):
+  ret = []
+  for (k,v) in d.items():
+    if not k in skip:
+      ret.append("%s='%s'" % (k,cgi.escape(v)))
+  return " ".join(ret)
+
 def extractSingleLineComment(byLine,idx):
     result = []
     firstSrcLine = None
 #-    print byLine[idx]
-#-    pdb.set_trace()
-    
-    while 1:
-      line = byLine[idx].strip()
-      if line[0:2]=="//":
-        result.append(line[2:])
-        idx+=1
-      else:
-        break
-    
-    while not line:
-      idx+=1
-      line = byLine[idx].strip()
-    firstSrcLine = line
-    return(idx-1," ".join(result),firstSrcLine)
+    try:
+    # First find all the comment lines
+      while 1:
+          line = byLine[idx].strip()
+          if line[0:3]=="//?":
+            result.append(line[3:])
+            idx+=1
+          elif line[0:2]=="//":
+            result.append(line[2:])
+            idx+=1
+          else:
+            break
+
+        # Next pass over any whitespace lines
+      while not line:
+          idx+=1
+          line = byLine[idx].strip()
+      # Ok, this is the line the comment refers to
+      firstSrcLine = line
+    except IndexError, e:
+      firstSrcLine = ""
+    return(idx," ".join(result),firstSrcLine)
 
 def extractMultiLineComment(byLine,idx):
     result = []
     firstSrcLine = None
+    pdb.set_trace()
     while 1:
       try:
         line = byLine[idx].strip()
@@ -84,13 +99,12 @@ def extractCodeDoc(byLine,idx):
     
 
 def extractComments(text):
-  """<fn>Pull the comments out of a Python file
+  """<fn>Pull the comments out of a C/C++ file
      <arg name='text'>A single string containing python source code</arg>
      </fn>"""
   byLine = text.split("\n")
   num=0
   comments = []
-
   idx = 0
   while idx<len(byLine):
     line = byLine[idx]
@@ -132,6 +146,23 @@ def addAttrClosure(attr,val):
 
   return fn
 
+def addTag(tag):
+  def fn(match):
+    m = match.groups()
+    if m[0]=="_":  # Its not in there, so add it (if it is already defined we won't override)
+      return "<%s %s>" % (tag,m[1])
+    else:
+      return "<%s %s>" % (m[0],m[1])
+  return fn
+
+def addCloserTag(tag):
+  def fn(match):
+    m = match.groups()
+    if m[0]=="_":  # Its not in there, so add it (if it is already defined we won't override)
+      return "</%s>" % (tag)
+    else:
+      return "</%s>" % (m[0])
+  return fn
 
 #-
 remacro = re.compile(r"\A\s*#define\s+(?P<name>[a-zA-Z_]+\w*)\s+(?P<value>\w+)")
@@ -142,15 +173,23 @@ refn = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,&*\s]*?)\s+(?
 rector = re.compile(r"\A(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\))\s*(?P<semicolon>;+)?\s*")
 revardecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
 #reargdecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
-reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|long|struct)\s)*)(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
+reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|long|struct)\s)*)(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)?")
+reassignment = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*=\s*(?P<value>\w+)")
+resymbol = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*")
 
-res = [remacro,renamespace,reclass,restruct,refn,rector,revardecl]
+res = [(TagConst,remacro),(TagSection,renamespace),(TagClass,reclass),(TagClass, restruct),(TagFunction,refn),(TagCtor,rector),(TagConst, reassignment),(TagVariable,revardecl),(TagConst,resymbol)]
 
-reKeys = ['name','value','type','args']
+reKeys = ['name','value','type','args','virtual','static','typequal']
+
+# don't put these matched keys into the final xml as attributes
+skipKeys = ['semicolon']
 
 #- This pattern matches an xml opener tag with an arbitrary number of attributes and returns
 #- the tag as the first group and all attributes and values as a string in the second
 xmlpat = re.compile(r"""<\s*(\w+)((?:\s+\w+\s*=\s*['"][^'"]*['"])*)\w*\s*>""")
+
+#- This pattern matches an xml closer 
+xmlcloserpat = re.compile(r"""</\s*(\w+)\s*>""")
 
 #- pat.match("<foo>").groups()
 #- pat.match("< foo >").groups()
@@ -162,19 +201,32 @@ xmlpat = re.compile(r"""<\s*(\w+)((?:\s+\w+\s*=\s*['"][^'"]*['"])*)\w*\s*>""")
 def fixupComments(comments):
   ret = []
   pat = re.compile("<(\w+)")
-
   for (linenum,comment,srcline) in comments:  # If the comment begins with a ?, then replace it with the generic xml tag
       if srcline:
-        for r in res:
-          t = r.search(srcline)
-          if t:
-            matches = t.groupdict()
-            for key in reKeys:
-              if matches.has_key(key):
-                comment = re.sub(xmlpat,addAttrClosure(key,matches[key]),comment)
+        isCommentXml = (re.search(xmlpat,comment) != None) or (re.search(xmlcloserpat,comment) != None)
+
+        if isCommentXml:  # Comment has XML in it.  Patch the XML with information derived from the source line
+            for (tag,r) in res:  # Look through all of our language patterns
+              t = r.search(srcline) # If it matches, apply that tag
+              if t:
+                matches = t.groupdict()
+                for key in reKeys:
+                  if matches.has_key(key):
+                    comment = re.sub(xmlpat,addAttrClosure(key,matches[key]),comment)
+                comment = re.sub(xmlpat,addTag(tag),comment)
+                comment = re.sub(xmlcloserpat,addCloserTag(tag),comment)
+                break # only match the first pattern
+        else: # Comment has no XML in it.  Figure out the appropriate tag from the source context and add it
+            comment = cgi.escape(comment) # convert & to &amp; < to &lt; etc
+            for (tag,r) in res:  # Look through all of our language patterns
+              t = r.search(srcline) # If it matches, apply that tag
+              if t:
+                matches = t.groupdict()
+                comment = "<%s %s>%s</%s>" % (tag,dictToArgStr(matches,skipKeys),comment,tag)
+                break # only match the first pattern
 
       comment = re.sub(pat,lambda x,y=linenum: addLineAttr(x,y),comment)
-      comment = comment.replace("&","&amp;")
+      # pdb.set_trace()
       ret.append(comment)
   return ret
 
@@ -186,12 +238,17 @@ def comments2MicroDom(comments,filename):
   try:
     dom = microdom.parseString(xml)
   except microdom.ExpatError,e:
-    print "File: %s: XML ERROR!" % filename, str(e)
+    print "Error: %s (error XML written to error.xml)" % str(e)
+    print "> %s(%d)unknown()" % (filename,e.lineno)
     try:
-      print "Clause: %s" % comments[e.lineno-1]
+      print "-> %s" % comments[e.lineno-1]
     except:
       pass
-    pdb.set_trace()
+    # write the bad xml out to an analysis file
+    f = open("error.xml","w")
+    f.write(xml)
+    f.close()
+    raise
     
   return dom
 
@@ -210,7 +267,7 @@ def regularize(node):
       args = args.replace("(","").replace(")","") # remove leading and trailing paren
       arglst = args.split(',')
       for arg in arglst:
-        if arg!="void":
+        if arg != "void" and arg != "":
           (typequal,atype,aname) = reargdecl.match(arg).groups()
 
           argdefs = node.filterByAttr({AttrName:aname})
