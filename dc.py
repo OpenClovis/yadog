@@ -52,7 +52,6 @@ def extractSingleLineComment(byLine,idx):
 def extractMultiLineComment(byLine,idx):
     result = []
     firstSrcLine = None
-    pdb.set_trace()
     while 1:
       try:
         line = byLine[idx].strip()
@@ -64,7 +63,7 @@ def extractMultiLineComment(byLine,idx):
         cleaned = line
         if cleaned[0:3] == '/*?': cleaned = cleaned[3:] #- Strip off the start and typical commend block stuff
         cleaned = cleaned.replace("*/","")
-        if cleaned and cleaned[0] == '*': cleaned = cleaned[1:]
+        if cleaned and cleaned[0] == '*': cleaned = cleaned[1:] # Strip off double stars
         result.append(cleaned)          
         if line.find("*/") != -1:
           break
@@ -121,7 +120,7 @@ def extractComments(text):
       elif -1 != line.find("//?"):
           (srcLine,sep,comment) = line.partition("//?")
           comments.append((idx,comment,srcLine))
-      elif line[0:3] == "/*?":
+      elif stripped[0:3] == "/*?":
           (idx,comment,srcLine) = extractMultiLineComment(byLine,idx)
           comments.append((idx,comment,srcLine))          
 
@@ -166,18 +165,20 @@ def addCloserTag(tag):
 
 #-
 remacro = re.compile(r"\A\s*#define\s+(?P<name>[a-zA-Z_]+\w*)\s+(?P<value>\w+)")
+remacrofn = re.compile("\A\s*#define\s+(?P<name>[a-zA-Z_]+\w*)\s*(?P<args>\([^\)]*\))+(?P<value>.*)$")
 renamespace = re.compile(r"\A\bnamespace\b\s*(?P<name>[a-zA-Z_]+\w*)")
 reclass = re.compile(r"\A\bclass\b\s*(?P<name>[a-zA-Z_]+\w*)")
 restruct = re.compile(r"\A\bstruct\b\s*(?P<name>[a-zA-Z_]+\w*)")
-refn = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*")
+refn = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*")
+reglobalfn = re.compile(r"""\A(?:extern\s*)(?:"C"\s*)(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*""")
 rector = re.compile(r"\A(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\))\s*(?P<semicolon>;+)?\s*")
-revardecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
+revardecl = re.compile(r"""\A\s*(?P<typequal>(?:(?:extern|"C")\s)*)(?P<type>[\w<>:,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)""")
 #reargdecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
-reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|long|struct)\s)*)(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)?")
+reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|long|struct)\s)*)(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)?")
 reassignment = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*=\s*(?P<value>\w+)")
 resymbol = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*")
 
-res = [(TagConst,remacro),(TagSection,renamespace),(TagClass,reclass),(TagClass, restruct),(TagFunction,refn),(TagCtor,rector),(TagConst, reassignment),(TagVariable,revardecl),(TagConst,resymbol)]
+res = [("macro",remacrofn),(TagConst,remacro),(TagSection,renamespace),(TagClass,reclass),(TagClass, restruct),(TagFunction,reglobalfn),(TagFunction,refn),(TagCtor,rector),(TagConst, reassignment),(TagVariable,revardecl),(TagConst,resymbol)]
 
 reKeys = ['name','value','type','args','virtual','static','typequal']
 
@@ -188,6 +189,8 @@ skipKeys = ['semicolon']
 #- the tag as the first group and all attributes and values as a string in the second
 xmlpat = re.compile(r"""<\s*(\w+)((?:\s+\w+\s*=\s*['"][^'"]*['"])*)\w*\s*>""")
 
+# If the user wants us to fill stuff in, it must START with xml opener tag
+xmlfillerpat = re.compile(r"""\A\s*<\s*(\w+)((?:\s+\w+\s*=\s*['"][^'"]*['"])*)\w*\s*>""")
 #- This pattern matches an xml closer 
 xmlcloserpat = re.compile(r"""</\s*(\w+)\s*>""")
 
@@ -204,26 +207,43 @@ def fixupComments(comments):
   for (linenum,comment,srcline) in comments:  # If the comment begins with a ?, then replace it with the generic xml tag
       if srcline:
         isCommentXml = (re.search(xmlpat,comment) != None) or (re.search(xmlcloserpat,comment) != None)
-
-        if isCommentXml:  # Comment has XML in it.  Patch the XML with information derived from the source line
+        isFillerXml = xmlfillerpat.search(comment)
+        matched = False
+        if isFillerXml:  # Comment has XML in it.  Patch the XML with information derived from the source line
             for (tag,r) in res:  # Look through all of our language patterns
               t = r.search(srcline) # If it matches, apply that tag
               if t:
                 matches = t.groupdict()
-                for key in reKeys:
+                if tag == "macro":  # Special case some handling for macros, then handle as a function
+                  matches["type"] = "macro"
+                  tag = TagFunction
+                log.info('line [{num}] "{srcline}" matches [{tag}] as {gd}'.format(num=linenum,srcline=srcline,tag=tag,gd=matches))
+
+                for key in reKeys:  # Put all the interesting data from the source line into the xml opener tag
                   if matches.has_key(key):
-                    comment = re.sub(xmlpat,addAttrClosure(key,matches[key]),comment)
-                comment = re.sub(xmlpat,addTag(tag),comment)
+                    comment = re.sub(xmlfillerpat,addAttrClosure(key,cgi.escape(matches[key])),comment)
+                    matched = True
+                comment = re.sub(xmlfillerpat,addTag(tag),comment)
                 comment = re.sub(xmlcloserpat,addCloserTag(tag),comment)
                 break # only match the first pattern
         else: # Comment has no XML in it.  Figure out the appropriate tag from the source context and add it
-            comment = cgi.escape(comment) # convert & to &amp; < to &lt; etc
+            if not isCommentXml: comment = cgi.escape(comment) # convert & to &amp; < to &lt; etc
             for (tag,r) in res:  # Look through all of our language patterns
-              t = r.search(srcline) # If it matches, apply that tag
+              t = r.match(srcline) # If it matches, apply that tag
               if t:
                 matches = t.groupdict()
+                if tag == "macro":  # Special case some handling for macros, then handle as a function
+                  matches["type"] = "macro"
+                  tag = TagFunction
+                  # pdb.set_trace()
+                log.info('line [{num}] "{srcline}" matches [{tag}] as {gd}'.format(num=linenum,srcline=srcline,tag=tag,gd=matches))
                 comment = "<%s %s>%s</%s>" % (tag,dictToArgStr(matches,skipKeys),comment,tag)
+                if tag == TagFunction:
+                  log.info("XML: {comment}".format(comment=comment))
+                matched= True
                 break # only match the first pattern
+        if not matched:
+          log.warning('line [{num}]: Unable to match to a C++ language construct: "{srcline}"'.format(num=linenum,srcline=srcline))
 
       comment = re.sub(pat,lambda x,y=linenum: addLineAttr(x,y),comment)
       # pdb.set_trace()
@@ -259,7 +279,11 @@ def regularize(node):
   if microdom.isInstanceOf(node,microdom.MicroDom):
     if node.tag_ in [TagCtor,TagMethod,TagFunction]:
       # Add the "decl" tag
-      t = microdom.MicroDom({"tag_":TagDecl},None,node.name + node.args)
+      if node.tag_ in [TagCtor]:  # ctors have not type
+        t = microdom.MicroDom({"tag_":TagDecl},None, node.name + node.args)
+      else:
+        t = microdom.MicroDom({"tag_":TagDecl},None,node.type + " " + node.name + node.args)
+
       node.addChild(t)
 
       # Supplement the args tags
@@ -268,7 +292,11 @@ def regularize(node):
       arglst = args.split(',')
       for arg in arglst:
         if arg != "void" and arg != "":
-          (typequal,atype,aname) = reargdecl.match(arg).groups()
+          matched = reargdecl.match(arg)
+          if matched: # A normal function
+            (typequal,atype,aname) = matched.groups()
+          else:
+            (typequal,atype,aname) = ("","macro arg",arg)
 
           argdefs = node.filterByAttr({AttrName:aname})
           if not argdefs:
@@ -285,7 +313,7 @@ def regularize(node):
 
 def extractXml(prjPfx, filename):
   
-
+  logging.info("Extracting: %s" % filename)
   f = open(filename,"rb")
   text = f.read()
 
@@ -300,8 +328,7 @@ def extractXml(prjPfx, filename):
   xml = comments2MicroDom(comments,filename)
   regularize(xml)
   
-
-  print "Extracted XML:\n", xml.write()  
+  # print "Extracted XML:\n", xml.write()  
   return xml
 
 def Test():

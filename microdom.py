@@ -2,6 +2,7 @@
 import pdb
 from types import *
 import inspect
+import cgi
 import xml.dom.minidom
 from xml.parsers.expat import ExpatError
 
@@ -407,6 +408,10 @@ class MicroDom:
               s = "\n<![CDATA[\n" + s + "\n]]>"
             chlst.append((" "*indent) + s + "\n")
     return "".join(chlst)    
+
+  def escapedContents(self):
+    """?<_>Return an XML-escaped representation of the data in this node</_>"""
+    return cgi.escape(self.data_)
 
   def write(self,indent=0):
     """?<_>Return a pretty-printed string of this XML tree</_>"""

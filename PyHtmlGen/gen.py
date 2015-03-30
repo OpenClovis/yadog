@@ -141,7 +141,8 @@ def WriteFile(fname,chunk,doc=None):
   doc.Insert([chunkStr(BR + BR + "\n\n\n")],doc.body,Before)
 
   dstr = str(doc)
-  print "FILE: %s" % fname, "\n",dstr,"\n\n\n"
+  
+  # print "FILE: %s" % fname, "\n",dstr,"\n\n\n"
 
   import xml.dom.minidom
   dom = xml.dom.minidom.parseString(dstr)
@@ -167,7 +168,7 @@ def WriteStr(chunk,doc=None):
   doc.Insert([chunkStr(BR + BR + "\n\n\n")],doc.body,Before)
 
   dstr = str(doc)
-  print "STR: ",dstr,"\n\n\n"
+  #print "STR: ",dstr,"\n\n\n"
 
   import xml.dom.minidom
   dom = xml.dom.minidom.parseString(dstr)
