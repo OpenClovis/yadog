@@ -172,7 +172,7 @@ restruct = re.compile(r"\A\bstruct\b\s*(?P<name>[a-zA-Z_]+\w*)")
 refn = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*")
 reglobalfn = re.compile(r"""\A(?:extern\s*)(?:"C"\s*)(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*""")
 rector = re.compile(r"\A(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\))\s*(?P<semicolon>;+)?\s*")
-revardecl = re.compile(r"""\A\s*(?P<typequal>(?:(?:extern|"C")\s)*)(?P<type>[\w<>:,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)""")
+revardecl = re.compile(r"""\A\s*(?P<typequal>(?:(?:extern|"C"|const)\s)*)(?P<type>[\w<>:,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)""")
 #reargdecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
 reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|long|struct)\s)*)(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)?")
 reassignment = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*=\s*(?P<value>\w+)")
@@ -227,7 +227,8 @@ def fixupComments(comments):
                 comment = re.sub(xmlcloserpat,addCloserTag(tag),comment)
                 break # only match the first pattern
         else: # Comment has no XML in it.  Figure out the appropriate tag from the source context and add it
-            if not isCommentXml: comment = cgi.escape(comment) # convert & to &amp; < to &lt; etc
+            if not isCommentXml: 
+              comment = cgi.escape(comment) # convert & to &amp; < to &lt; etc
             for (tag,r) in res:  # Look through all of our language patterns
               t = r.match(srcline) # If it matches, apply that tag
               if t:

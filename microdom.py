@@ -404,6 +404,7 @@ class MicroDom:
             chlst.append(c.write(indent+2))
           except AttributeError:
             s = str(c)
+            # If html illegal characters are in the input then literalize it.  TODO: see if this looks like HTML.  If so, don't touch it.
             if "<" in c or ">" in c or "&" in c:
               s = "\n<![CDATA[\n" + s + "\n]]>"
             chlst.append((" "*indent) + s + "\n")
@@ -423,11 +424,8 @@ class MicroDom:
       result.append((" "*indent) + ps[1] + "\n")
     return "".join(result)
 
-  def dump(self, recurse=True):
-    """?<_>Return a compact string of this XML tree</_>"""
-    if self.children_:
-      full = 1
-    else: full = 0
+  def dumpChildren(self, recurse=True):
+    """?<_>Return a compact string of this XML tree, without this nodes tag</_>"""
 
     # if self.data_: datastr = str(self.data_)
     # else: datastr = ""
@@ -442,6 +440,16 @@ class MicroDom:
             chlst.append(str(c))
         chstr = "".join(chlst)
     else: chstr = ""
+    return chstr
+
+  def dump(self, recurse=True):
+    """?<_>Return a compact string of this XML tree</_>"""
+
+    if self.children_:
+      full = 1
+    else: full = 0
+
+    chstr = self.dumpChildren(recurse)
 
     if len(self.attributes_)>1:
       # Format attribute string, eliminating the tag_ attribute

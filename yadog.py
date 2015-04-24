@@ -171,7 +171,9 @@ def regularize(node,zzdepth=0):
        
        
      if not node.child_.has_key(TagBrief):
-       candidate = node.data_.split("\n")[0].split(". ")[0]  # Get the first sentence in the first line
+       tdesc = node.child_[TagDesc].dumpChildren()
+       # candidate = node.data_.split("\n")[0].split(". ")[0]  # Get the first sentence in the first line
+       candidate = tdesc.split("\n")[0].split(". ")[0]  # Get the first sentence in the first line
        if candidate: # If there is something then use it as the brief
          brief = candidate + "..."
        else:  # Or use the 1st sentence of the description
