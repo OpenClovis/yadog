@@ -17,7 +17,12 @@ from constants import *
 def extractXml(prjPfx, filename):
   
   print "Parsing %s" % filename
-  f = open(filename,"rb")
+  try:
+    f = open(filename,"rb")
+  except IOError:  # A broken symlink could cause this to be unopenable even though the directory entry exists
+    print "Cannot open %s" % filename
+    return ""
+
   text = f.read()
 
   if filename.startswith(prjPfx):
