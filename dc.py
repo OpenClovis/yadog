@@ -26,6 +26,7 @@ def extractSingleLineComment(byLine,idx):
     result = []
     firstSrcLine = None
 #-    print byLine[idx]
+    excerpt = False
     try:
     # First find all the comment lines
       while 1:
@@ -33,6 +34,16 @@ def extractSingleLineComment(byLine,idx):
           if line[0:3]=="//?":
             result.append(line[3:])
             idx+=1
+            if "<excerpt" in line:
+              tmp = []
+              while 1:
+                l2 = byLine[idx]
+                if "</excerpt>" in l2:
+                  result.append("<![CDATA[" + "".join(tmp) + "]]>")
+                  break
+                else:
+                  tmp.append(l2 + "\n")
+                idx += 1
           elif line[0:2]=="//":
             result.append(line[2:])
             idx+=1
@@ -47,7 +58,7 @@ def extractSingleLineComment(byLine,idx):
       firstSrcLine = line
     except IndexError, e:
       firstSrcLine = ""
-    return(idx," ".join(result),firstSrcLine)
+    return(idx-1," ".join(result),firstSrcLine)
 
 def extractMultiLineComment(byLine,idx):
     result = []
@@ -121,6 +132,7 @@ def extractComments(text):
           (srcLine,sep,comment) = line.partition("//?")
           comments.append((idx,comment,srcLine))
       elif stripped[0:3] == "/*?":
+          # pdb.set_trace()
           (idx,comment,srcLine) = extractMultiLineComment(byLine,idx)
           comments.append((idx,comment,srcLine))          
 
@@ -281,9 +293,10 @@ def regularize(node):
     if node.tag_ in [TagCtor,TagMethod,TagFunction]:
       # Add the "decl" tag
       if node.tag_ in [TagCtor]:  # ctors have not type
-        t = microdom.MicroDom({"tag_":TagDecl},None, node.name + node.args)
+        t = microdom.MicroDom({"tag_":TagDecl},[node.name + node.args])
       else:
-        t = microdom.MicroDom({"tag_":TagDecl},None,node.type + " " + node.name + node.args)
+        t = microdom.MicroDom({"tag_":TagDecl},[node.type + " " + node.name + node.args])
+        # pdb.set_trace()
 
       node.addChild(t)
 
@@ -318,7 +331,6 @@ def extractXml(prjPfx, filename):
   f = open(filename,"rb")
   text = f.read()
 
-  #- pdb.set_trace()
   comments = extractComments(text)
 
   comments = fixupComments(comments)

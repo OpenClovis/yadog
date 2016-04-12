@@ -110,9 +110,16 @@ def split(selFn,lst):
     else: b.append(l)
   return (a,b)
 
+wholeXml = None
+
+def findRef(name):
+  if not wholeXml: return None
+  result = wholeXml.findByAttr({"id":name})
+  return result 
+
 def regularize(node,zzdepth=0):
   """?? This function ensures that the tree is complete and regular.  For example it breaks descriptions into brief and desc tags.
-  """
+  """      
 
   if 0: # Print the nodes
     try:
@@ -126,6 +133,20 @@ def regularize(node,zzdepth=0):
     children = node.children_
   except AttributeError:
     children = []
+
+  # replace TagInsert with what it refers to
+  idx = 0
+  while idx<len(children):
+    child = children[idx]
+    if microdom.isInstanceOf(child,microdom.MicroDom):
+      if child.tag_ == TagInsert:
+        obj = findRef(child.ref)
+        if obj:
+          if len(obj)==1:
+            children[idx] = obj[0][1]
+          else:
+            pdb.set_trace()
+    idx+=1
   
   for c in children:
     regularize(c,zzdepth+1)
@@ -143,17 +164,12 @@ def regularize(node,zzdepth=0):
   
 
   if microdom.isInstanceOf(node,microdom.MicroDom):
-
     # Add an empty "type" attribute if it does not have one
     if node.tag_ in TypedTags:
        if not node.attributes_.has_key(AttrType):
          node.attributes_[AttrType] = ""      
 
     if node.tag_ in ConstructTags:
-     #print str(node)
-
-     # Regularize the "brief" and "desc" children
-
      if not node.child_.has_key(TagDesc):
        # Split the children into who should go under the desc and who should go back under me 
        chLst = node.removeChildren()
@@ -171,7 +187,9 @@ def regularize(node,zzdepth=0):
        
        
      if not node.child_.has_key(TagBrief):
-       tdesc = node.child_[TagDesc].dumpChildren()
+       tdesc = node.child_[TagDesc].dumpText()
+       if "Buffers can be" in tdesc:
+         pdb.set_trace()
        # candidate = node.data_.split("\n")[0].split(". ")[0]  # Get the first sentence in the first line
        candidate = tdesc.split("\n")[0].split(". ")[0]  # Get the first sentence in the first line
        if candidate: # If there is something then use it as the brief
@@ -198,7 +216,8 @@ def go(prjPfx, allfiles, cfg):
     ext = os.path.splitext(f)[1]
     if ext == ".py":
       allxml.append(dp.extractXml(prjPfx,f))
-    elif ext in [".h",".hpp",".hxx",".c",".pde"]:  # .pde is Arduino
+    elif ext in [".h",".hpp",".hxx",".c",".cxx",".pde"]:  # .pde is Arduino
+      print "parsing %s" % f
       allxml.append(dc.extractXml(prjPfx,f))
     elif ext in [".txt"]:
       allxml.append(dt.extractXml(prjPfx,f))
@@ -212,6 +231,8 @@ def go(prjPfx, allfiles, cfg):
   f.close()
 
   print "Regularize:"
+  global wholeXml
+  wholeXml = xml
   regularize(xml) 
   print "Regularize Complete:"
 
@@ -224,7 +245,6 @@ def go(prjPfx, allfiles, cfg):
   f = open("docout.xml","wb")
   f.write(pp)
   f.close()
-
   d2html.gen("html",xml,cfg)
 
 

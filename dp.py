@@ -275,6 +275,9 @@ def xmlAttrInsert(xml,d):
         if k == "tag_": xml.tag_ = v
 
 def getLvalue(node):
+  if type(node) is ast.Tuple:
+    # TODO uncompile it
+    return "(tuple)"
   try:
     return node.id
   except AttributeError:

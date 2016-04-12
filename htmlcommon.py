@@ -39,15 +39,17 @@ def obj2anchor(obj):
     t = t.parent_
   return "_".join(name)
 
-def obj2link(obj):
-  return "<a href='%s'>%s</a>" % (obj2file(obj),obj.name)
+def obj2link(obj,loadFile=None):
+  if loadFile is None: loadFile = obj2file(obj)
+  return "<a href='%s'>%s</a>" % (loadFile,obj.name)
 
-def obj2tlink(obj,replacement,text=None):
+def obj2tlink(obj,replacement,text=None,loadFile=None):
   if not obj: return ""
   if not text: text = obj.name
   if replacement[0] != "'":
     pdb.set_trace()
-  return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Blue;');">%s</span>""" % (replacement,obj2file(obj),obj2anchor(obj),text)
+  if loadFile is None: loadFile = obj2file(obj)
+  return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Blue;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
 
 def parenttLink(obj,tag,rep):
   # Figure out the upwards links

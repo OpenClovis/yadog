@@ -30,6 +30,10 @@ TagRef      = "ref"             #?? A reference to another function or class
 TagLicense  = "license"         #?? The file's license
 TagReturn   = "return"          #?? The return value
 TagException = "exception"      #?? A exception that can be raised
+
+TagVerbatim = "verbatim"        #?? Include the full source text, exactly as shown
+TagExcerpt = "excerpt"          #?? Include the full source text, but still interpreting XML
+TagInsert = "insert"            #?? Replace this XML object with whatever it references, i.e. <verbatim id="foo">interesting text</verbatim> ... <insert ref="foo" /> becomes <verbatim id="foo">interesting text</verbatim> ... <verbatim id="foo">interesting text</verbatim>
 #? </section>
 
 #?? These tags represent language constructs
@@ -45,7 +49,7 @@ LeafTags = [TagDesc,TagBrief,TagParam,TagField,TagException]
 TagsWithOwnFile = [TagClass,TagFile]
 
 #?? These tags are pulled out of description blocks to be part of the parent block
-NoDescTags = [TagBrief,TagParam,TagLicense,TagReturn,TagException,TagRequires] + ConstructTags
+NoDescTags = [TagBrief,TagParam,TagLicense,TagReturn,TagException,TagRequires, TagDecl] + ConstructTags
 
 #?? There can only be one child tag of this type and name.  If there are 2, they will be merged into one node.
 CombinedTags = [TagSection]

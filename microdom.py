@@ -17,6 +17,17 @@ def keyify(s):
   s = s.replace(":","_")
   return s
 
+class Verbatim:
+  def __init__(self, text):
+    self.text = text
+  
+  def str(self):
+    return "<![CDATA[" + self.text + "]]>"
+
+  def write(self,indent=0):
+    """?<_>Return a pretty-printed string of this XML tree -- except that this is the verbatim class so we return the exact thing</_>"""
+    return "<![CDATA[" + self.text + "]]>"
+
 class AnyChild:
   def __init__(self, microdom,recurse=False):
     self.microdom = microdom
@@ -242,6 +253,9 @@ class MicroDom:
   def childrenWithAttr(self,attr,val):
     return self.children(lambda x,a=attr,v=val: x if isInstanceOf(x,MicroDom) and x.attributes_.get(a,None) == val else None)
 
+  def childrenWithTag(self,val):
+    return self.children(lambda x,a="tag_",v=val: x if isInstanceOf(x,MicroDom) and x.attributes_.get(a,None) == val else None)
+
   def get(self,item,d=None):
     try:
       d = self.__getitem__(item)
@@ -404,6 +418,8 @@ class MicroDom:
             chlst.append(c.write(indent+2))
           except AttributeError:
             s = str(c)
+            if "You can override" in s:
+              pdb.set_trace()
             # If html illegal characters are in the input then literalize it.  TODO: see if this looks like HTML.  If so, don't touch it.
             if "<" in c or ">" in c or "&" in c:
               s = "\n<![CDATA[\n" + s + "\n]]>"
@@ -423,6 +439,20 @@ class MicroDom:
     if len(ps)==2:
       result.append((" "*indent) + ps[1] + "\n")
     return "".join(result)
+
+  def dumpText(self):
+    """?<_>Return the data in this node -- no children or tag</_>"""
+
+    # if self.data_: datastr = str(self.data_)
+    # else: datastr = ""
+    if self.children_:
+        chlst = []
+        for c in self.children_:
+          if c in StringTypes:
+            chlst.append(str(c))
+        chstr = "".join(chlst)
+    else: chstr = ""
+    return chstr
 
   def dumpChildren(self, recurse=True):
     """?<_>Return a compact string of this XML tree, without this nodes tag</_>"""
@@ -501,8 +531,10 @@ def LoadMiniDom(dom):
 
   if dom.childNodes:
     for child in dom.childNodes:
-      if child.nodeName == '#text' or child.nodeName == '#cdata-section':  # Raw data
+      if child.nodeName == '#text':  # Raw data
         childlist.append(child.nodeValue)
+      elif child.nodeName == '#cdata-section':
+        childlist.append(Verbatim(child.nodeValue))
       else:
         childlist.append(LoadMiniDom(child))
 
