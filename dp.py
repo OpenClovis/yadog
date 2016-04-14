@@ -116,7 +116,7 @@ def fixupComments(comments):
     if comment[0:2] == '#-': #- It is NOT part of the doc
       comment = None
     elif comment.find('#-') != -1:
-      print "REMOVING: %s" % comment
+      log.debug("REMOVING: %s" % comment)
       comment = None
     elif comment[0:3] == '#??': #-
       #print "Adding tag: %s" % comment
@@ -204,7 +204,7 @@ def comments2MicroDom(comments,filename):
   pat = re.compile("<(\w+)")
   
   for (line,comment) in comments:
-    print "c2md:", line,comment
+    #print "c2md:", line,comment
     newcomment = re.sub(pat,lambda x,y=line: addLineAttr(x,y),comment)
     text.append(newcomment)
  
@@ -215,7 +215,7 @@ def comments2MicroDom(comments,filename):
   except microdom.ExpatError,e:
     print "XML ERROR!", str(e)
     print str(xml)
-    pdb.set_trace()
+    raise
     
   return dom
 
@@ -312,7 +312,7 @@ def extractXml(prjPfx, filename):
           try:
             varnames.append(tgt.attr)
           except AttributeError:
-            print "Skipping ctor assignment %s" % str(tgt)
+            log.warning("Skipping ctor assignment %s" % str(tgt))
             pass
 
       else:
@@ -393,14 +393,14 @@ def extractXml(prjPfx, filename):
       pass
       #- pdb.set_trace()    
     else:
-      print "unrecognised node %s" % str(node)
+      log.warning("unrecognised node %s" % str(node))
 
 
-  print "Parsing %s" % filename
+  log.info("Parsing %s" % filename)
   try:
     f = open(filename,"rb")
   except IOError:  # A broken symlink could cause this to be unopenable even though the directory entry exists
-    print "Cannot open %s" % filename
+    log.warning("Cannot open %s" % filename)
     return ""
 
   text = f.read()
@@ -411,16 +411,16 @@ def extractXml(prjPfx, filename):
   parsedFile = ast.parse(text,filename)
 
   comments = extractComments(text)
-  print "Step 1 Extract Comments: %s" % comments
+  log.info("Step 1 Extract Comments: %s" % comments)
   comments = fixupComments(comments)
-  print "Step 2 Fixup Comments: %s" % comments
+  log.info("Step 2 Fixup Comments: %s" % comments)
   docStrings = extractDocstrings(parsedFile)
-  print "Step 3 Extract Docstrings: %s" % docStrings
+  log.info("Step 3 Extract Docstrings: %s" % docStrings)
   docStrings = fixupDocstrings(docStrings)
-  print "Step 4 Fixup Docstrings: %s" % docStrings
+  log.info("Step 4 Fixup Docstrings: %s" % docStrings)
   
   allDocs = mergeDocList(comments,docStrings)
-  print "Step 5 Merge: %s" % allDocs
+  log.info("Step 5 Merge: %s" % allDocs)
   
   xml = comments2MicroDom(allDocs,filename)
 

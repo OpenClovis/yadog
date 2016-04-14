@@ -9,4 +9,4 @@ def isInstanceOf(obj,objType):
   return False
 
 log = logging.getLogger('yadog')
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.ERROR)

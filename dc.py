@@ -182,7 +182,10 @@ renamespace = re.compile(r"\A\bnamespace\b\s*(?P<name>[a-zA-Z_]+\w*)")
 reclass = re.compile(r"\A\bclass\b\s*(?P<name>[a-zA-Z_]+\w*)")
 restruct = re.compile(r"\A\bstruct\b\s*(?P<name>[a-zA-Z_]+\w*)")
 refn = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*")
-reglobalfn = re.compile(r"""\A(?:extern\s*)(?:"C"\s*)(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*""")
+refnReturnsStruct = re.compile(r"\A(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>\bstruct\b\s*[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*")
+
+reCfn = re.compile(r"""\A(?:extern\s*)(?:"C"\s*)(?:\bvirtual\b|\bstatic\b)?\s*(?P<type>[\w<>,:&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\)\s*(?:\bconst\b)?)\s*(?P<semicolon>;+)?\s*""")
+
 rector = re.compile(r"\A(?P<name>\b[a-zA-Z_]\w*\b)\s*(?P<args>\(.*?\))\s*(?P<semicolon>;+)?\s*")
 revardecl = re.compile(r"""\A\s*(?P<typequal>(?:(?:extern|"C"|const)\s)*)(?P<type>[\w<>:,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)""")
 #reargdecl = re.compile(r"\A\s*(?P<type>[\w<>,&*\s]*?)\s+(?P<name>\b[a-zA-Z_]\w*\b)")
@@ -190,7 +193,7 @@ reargdecl = re.compile(r"\A\s*(?P<typequal>(?:(?:unsigned|signed|const|volatile|
 reassignment = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*=\s*(?P<value>\w+)")
 resymbol = re.compile(r"\A\s*(?P<name>\b[a-zA-Z_]\w*\b)\s*")
 
-res = [("macro",remacrofn),(TagConst,remacro),(TagSection,renamespace),(TagClass,reclass),(TagClass, restruct),(TagFunction,reglobalfn),(TagFunction,refn),(TagCtor,rector),(TagConst, reassignment),(TagVariable,revardecl),(TagConst,resymbol)]
+res = [("macro",remacrofn),(TagConst,remacro),(TagSection,renamespace),(TagClass,reclass),(TagFunction,refnReturnsStruct),(TagClass, restruct),(TagFunction,reCfn),(TagFunction,refn),(TagCtor,rector),(TagConst, reassignment),(TagVariable,revardecl),(TagConst,resymbol)]
 
 reKeys = ['name','value','type','args','virtual','static','typequal']
 

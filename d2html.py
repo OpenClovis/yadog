@@ -2,6 +2,7 @@
 """
 import pdb
 import os
+import types
 
 from common import *
 
@@ -64,44 +65,72 @@ def gen(direc,xml,cfg):
   """
   htmlcfg = cfg["html"]
   tagDict = genTagDict(xml)
-  print "TAGS:",tagDict.keys()
+  # print "TAGS:",tagDict.keys()
 
   # Add the layout path to the environment so we can load the modules
   if htmlcfg.has_key("dir"):
-    print "PATH: ", htmlcfg["dir"]
-    exec "import sys; sys.path.append('%s')\n" % htmlcfg["dir"] in generEnv
+    es = "import sys; sys.path.append('%s')\n" % htmlcfg["dir"]
+    log.debug("Running: %s" % es)
+    exec es in generEnv
 
   # Generate the top level page
   for (k,v) in htmlcfg["misc"].items():
-    print "Generating %s using module %s" % (k,v)
-    importAndRun(v,[("%s.generate(obj,cfg,td)" % v,{"obj":xml,"cfg":cfg,"td":tagDict})])
+    log.info("Generating '%s' using module '%s'" % (k,v))
+    importAndRun(v,[("%s.generate(obj,cfg,args,td)" % v,{"obj":xml,"cfg":cfg,"args":None,"td":tagDict})])
     
 
   # Generate the lowest level pages
   for sect in cfg["sections"]:
     if tagDict.has_key(sect):
       # Look up the page implementation for this section
-      pi = htmlcfg["pageimplementers"].get(sect,None)
+      pi = htmlcfg["sectionPageImplementers"].get(sect,htmlcfg["sectionPageImplementers"].get(sect.capitalize(),None))
       if pi:
-        importAndRun(pi,[("%s.generate(obj,cfg)" % pi,{"obj":obj,"cfg":cfg}) for obj in tagDict[sect]])
+        (name,filename,code,args) = parseCfgEntry(pi,sect)
+        # importAndRun(code,[("%s.generate(obj,cfg)" % code,{"obj":obj,"cfg":cfg}) for obj in tagDict[sect]])
+        importAndRun(code,[("%s.generate(obj,cfg,args,td)" % code,{"obj":obj,"cfg":cfg,"args":args, "td":tagDict}) for obj in tagDict[sect]  ])
 
-      pi = htmlcfg["indeximplementers"].get(sect,None)
+      pi = htmlcfg["sectionIndexImplementers"].get(sect,htmlcfg["sectionIndexImplementers"].get(sect.capitalize(),None))
       if pi:
-        importAndRun(pi,[("%s.generate(obj,cfg)" % pi,{"obj":tagDict[sect],"cfg":cfg})])
+        (name,filename,code,args) = parseCfgEntry(pi,sect)
+        importAndRun(pi,[("%s.generate(obj,cfg,args,td)" % pi,{"obj":tagDict[sect],"cfg":cfg,"args":args, "td":tagDict}) ])
 
-  for nav in cfg["html"]["nav"]:
-    name = nav[0]
-    pi = nav[1]
-    if len(nav) > 2:
-      args = nav[2]
+  #for name,val in htmlcfg["indeximplementers"].items():
+  #  log.info("Generating '%s' using module '%s'" % (k,v))
+  #  importAndRun(v,[("%s.generate(obj,cfg,args,td)" % v,{"obj":xml,"cfg":cfg,"args":None, "td":tagDict})])
+
+  for nav in htmlcfg["nav"]:
+    if type(nav) is types.DictType:
+      name = nav["name"]
+      filename = nav.get("file", name)
+      pi = nav["gen"]
+      args = nav.get("args", None)
     else:
-      args = None
+      name = nav[0]
+      pi = nav[1]
+      if len(nav) > 2:
+        args = nav[2]
+      else:
+        args = None
     importAndRun(pi,[("%s.generate(obj,cfg,args,tagDict)" % pi,{"obj":xml,"cfg":cfg,"args":args,"tagDict":tagDict})])
 
-  if 0:
-   pi = htmlcfg["indeximplementers"].get("idx",None)
-   if pi:
-    importAndRun(pi,[("%s.generate(obj,cfg)" % pi,{"obj":xml,"cfg":cfg})])
-   pi = htmlcfg["indeximplementers"].get("search",None)
-   if pi:
-    importAndRun(pi,[("%s.generate(obj,cfg)" % pi,{"obj":xml,"cfg":cfg})])
+
+def parseCfgEntry(nav,name=None):
+ 
+    if type(nav) is types.DictType:
+      name = nav["name"]
+      filename = nav.get("file", name)
+      pi = nav["gen"]
+      args = nav.get("args", None)
+    elif type(nav) is types.TupleType:
+      name = nav[0]
+      pi = nav[1]
+      if len(nav) > 2:
+        args = nav[2]
+      else:
+        args = None
+    else:  # just a string
+      pi = nav
+      args = None
+      filename = name
+
+    return (name,filename,pi,args)

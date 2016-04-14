@@ -72,7 +72,7 @@ class HtmlSkel(Doc):
   # The content of a module is a list of (modules and content to insert in those modules)
   def AddModule(self,module, where=LocationRoot):
     """Add a module into this document.  A module is a chunk of text that has to occur exactly once"""
-    print "AddModule: %s" % str(module)
+    #print "AddModule: %s" % str(module)
 
     if where&LocationRoot and self.parent: self.parent.AddModule(module)
 
@@ -95,7 +95,7 @@ class HtmlSkel(Doc):
 
       #print "Content", content
       for (mod,info) in content:
-        print "Module adding to '%s', Adding %s" % (mod,info)
+        # print "Module adding to '%s', Adding %s" % (mod,info)
         marker = self.__dict__[mod]  # Find the marker from its name
         if type(info) is not type([]): info = [info]
         self.Insert(info,marker,Before)

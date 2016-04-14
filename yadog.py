@@ -14,8 +14,10 @@ import dt
 import d2html
 
 from constants import *
-
+from common import *
 import sys
+
+DropToDebugger = True
 
 
 def info(type, value, tb):
@@ -30,7 +32,8 @@ def info(type, value, tb):
       traceback.print_exception(type, value, tb)
       print
       # ...then start the debugger in post-mortem mode.
-      pdb.pm()
+      if DropToDebugger:
+        pdb.pm()
 
 sys.excepthook = info
 
@@ -230,11 +233,11 @@ def go(prjPfx, allfiles, cfg):
   f.write(pp)
   f.close()
 
-  print "Regularize:"
+  log.info("Regularize:")
   global wholeXml
   wholeXml = xml
   regularize(xml) 
-  print "Regularize Complete:"
+  log.info("Regularize Complete:")
 
   try:
     os.makedirs("html")

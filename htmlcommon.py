@@ -7,6 +7,10 @@ from common import *
 
 import microdom
 
+def filenameify(s):
+  s = s.replace(" ","_")
+  return s
+
 def htmlify(s):
   s = s.replace(" ","_")
   return s
@@ -35,7 +39,11 @@ def obj2anchor(obj):
   t = obj
   name = []
   while t != p:
-    name.insert(0, htmlify(t.name))
+    try:
+      portion = t.name
+      name.insert(0, htmlify(portion))
+    except:  # skip if t.name does not exist
+      pass
     t = t.parent_
   return "_".join(name)
 
