@@ -58,7 +58,7 @@ def obj2tlink(obj,replacement,text=None,loadFile=None):
     pdb.set_trace()
   if loadFile is None: loadFile = obj2file(obj)
   # return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Blue;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
-  return """<a class='invis' onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,obj2anchor(obj),loadFile, text)
+  return """<a class='invis' onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,os.path.splitext(loadFile)[0] + "__" + obj2anchor(obj),loadFile, text)
 
 def refobj2tlink(obj,replacement,text=None,loadFile=None):
   if not obj: return ""
@@ -66,7 +66,7 @@ def refobj2tlink(obj,replacement,text=None,loadFile=None):
   if replacement[0] != "'":
     pdb.set_trace()
   if loadFile is None: loadFile = obj2file(obj)
-  return """<a onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,obj2anchor(obj),loadFile, text)
+  return """<a onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,os.path.splitext(loadFile)[0] + "__" + obj2anchor(obj),loadFile, text)
 
   # return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Yellow;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
 

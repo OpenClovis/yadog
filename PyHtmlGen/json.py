@@ -33,23 +33,27 @@ class DefineRpc:
     doc.AddModule(jsonModule,LocationBoth)
     doc.Insert("InstallFunction(server, '%s');\n" % self.name,rpcim)
 
-def actionDynGet(element,uri):
+def actionDynGet(element,uri,hsh=None):
   eid = None
+  if hsh is None:
+    hsh = os.path.splitext(uri)[0]
   try:  # If its a chunk then use the id.
     eid = element.getId()
   except: # Otherwise assume that the user is passing the id in
     eid = str(element)
 
-  return "ReplaceChildrenWithUri('%s','%s'); return false;" % (eid,str(uri))
+  return "ReplaceChildrenWithUri('%s','%s'); location.hash='%s'; return false;" % (eid,str(uri),hsh)
 
-def actionDynGetScript(element,uri,js):
+def actionDynGetScript(element,uri,js,hsh=None):
   eid = None
+  if hsh is None:
+    hsh = os.path.splitext(uri)[0]
   try:  # If its a chunk then use the id.
     eid = element.getId()
   except: # Otherwise assume that the user is passing the id in
     eid = str(element)
 
-  return "ReplaceChildrenWithUri('%s','%s'); LoadScript('%s','%s'); return false;" % (eid,str(uri),eid + "script", js)
+  return "ReplaceChildrenWithUri('%s','%s'); LoadScript('%s','%s'); location.hash='%s'; return false;" % (eid,str(uri),eid + "script", js,hsh)
 
 
 
