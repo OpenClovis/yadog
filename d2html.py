@@ -5,10 +5,85 @@ import os
 import types
 
 from common import *
-
+from constants import *
+from htmlcommon import *
 import microdom
 
 #? <section name="Helper Functions">
+
+def resolveRef(obj,tagDict):
+  """?? resolves the reference described by obj"""
+  try:
+    searchString = obj.ref
+  except AttributeError:
+    searchString = obj.data_
+
+  mustBeFn = False
+  if searchString[-2:] == "()":
+    searchString = searchString[:-2]
+    museBeFn = True
+  if ":" in searchString:
+    srchLst = searchString.split(":")
+  elif "." in searchString:
+    srchLst = searchString.split(".")
+  else:
+    srchLst = [searchString]
+
+  s = srchLst[0]
+  loc = obj.parent_
+  match=None
+  top = None
+  while loc and not match:
+    top = loc
+    match = loc.findByAttr({"name":s})
+    if not match:
+      match = loc.findByAttr({"tag_":s})
+      if not match:
+        loc = loc.parent_
+
+  if not match:
+    files = tagDict[TagFile]
+    for f in files:  # Files have a . and could have directories so need to be specially handled
+      if searchString in f.name:  
+        match = f
+        break
+  else:
+    match = match[0][1]
+
+  if not match: return None
+
+  for s in srchLst[1:]:
+    pass # TODO
+
+  return match
+
+def writeChildrenPatch(self,indent):
+  #pdb.set_trace()
+  #print self
+  d = self.oldWriteChildren(indent)
+  ret = refobj2tlink(self.ref_,"'center'",text=d)  # TODO this should call a global function pointer that the renderer can set
+  return ret
+
+def resolveAllRefs(xml,tagDict):
+  """?? Adds the target of all references in a microdom tree to the object in the tree
+  """
+  for node in xml.walk():
+    if isInstanceOf(node,microdom.MicroDom):
+      if node.tag_ == TagRef:
+        tgt = resolveRef(node,tagDict)
+        if not tgt:
+          fil = node
+          while fil and fil.tag_ != TagFile:
+            fil = fil.parent_
+          line = node.linenum if hasattr(node,"linenum") else "0"
+          print "Unresolved ref %s at %s:%s" % (node.data_,fil.name,line)
+          node.ref_ = None
+
+        else:
+          print "Resolved: %s to %s" % (node.dump(), tgt.name)
+          node.ref_ = tgt
+          node.oldWriteChildren = node.writeChildren
+          node.writeChildren = types.MethodType(writeChildrenPatch,node)
 
 def genTagDict(xml):
   """?? Converts a <ref>microdom</ref> tree into a dictionary of key: tag names, value: list of objects
@@ -65,6 +140,7 @@ def gen(direc,xml,cfg):
   """
   htmlcfg = cfg["html"]
   tagDict = genTagDict(xml)
+  resolveAllRefs(xml,tagDict)
   # print "TAGS:",tagDict.keys()
 
   # Add the layout path to the environment so we can load the modules

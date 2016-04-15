@@ -40,7 +40,7 @@ def actionDynGet(element,uri):
   except: # Otherwise assume that the user is passing the id in
     eid = str(element)
 
-  return "ReplaceChildrenWithUri('%s','%s');" % (eid,str(uri))
+  return "ReplaceChildrenWithUri('%s','%s'); return false;" % (eid,str(uri))
 
 def actionDynGetScript(element,uri,js):
   eid = None
@@ -49,7 +49,7 @@ def actionDynGetScript(element,uri,js):
   except: # Otherwise assume that the user is passing the id in
     eid = str(element)
 
-  return "ReplaceChildrenWithUri('%s','%s'); LoadScript('%s','%s');" % (eid,str(uri),eid + "script", js)
+  return "ReplaceChildrenWithUri('%s','%s'); LoadScript('%s','%s'); return false;" % (eid,str(uri),eid + "script", js)
 
 
 

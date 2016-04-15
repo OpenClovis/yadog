@@ -57,7 +57,18 @@ def obj2tlink(obj,replacement,text=None,loadFile=None):
   if replacement[0] != "'":
     pdb.set_trace()
   if loadFile is None: loadFile = obj2file(obj)
-  return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Blue;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
+  # return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Blue;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
+  return """<a class='invis' onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,obj2anchor(obj),loadFile, text)
+
+def refobj2tlink(obj,replacement,text=None,loadFile=None):
+  if not obj: return ""
+  if not text: text = obj.name
+  if replacement[0] != "'":
+    pdb.set_trace()
+  if loadFile is None: loadFile = obj2file(obj)
+  return """<a onclick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s'; return false;" href="%s">%s</a>""" % (replacement,loadFile,obj2anchor(obj),loadFile, text)
+
+  # return """<span onClick="ReplaceChildrenWithUri(%s,'%s'); location.hash='%s';" onMouseout="this.setAttribute('style','');" onMouseover="this.setAttribute('style','color:Yellow;');">%s</span>""" % (replacement,loadFile,obj2anchor(obj),text)
 
 def parenttLink(obj,tag,rep):
   # Figure out the upwards links
